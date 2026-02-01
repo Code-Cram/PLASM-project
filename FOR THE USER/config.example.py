@@ -6,8 +6,12 @@ TMDB_API_KEY = "your_tmdb_api_key_here"  # Get from: https://www.themoviedb.org/
 GOOGLE_BOOKS_API_KEY = "your_google_books_key_here"  # Get from: https://console.cloud.google.com/apis/credentials
 # Jikan API is public - no key needed
 
-# Database configuration
-DB_PATH = "plasm.db"
+# Database configuration (PostgreSQL)
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_NAME = "plasm_db"
+DB_USER = "your_postgres_user"
+DB_PASSWORD = "your_postgres_password"
 
 # Directory paths
 POSTERS_DIR = "data/posters/"

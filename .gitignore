@@ -35,6 +35,11 @@ data/posters/
 data/exports/
 data/logs/
 
+# PostgreSQL
+*.dump
+*.sql.bak
+postgres_data/
+
 # Configuration files (SENSITIVE - API KEYS)
 config.py
 
@@ -76,3 +81,8 @@ dmypy.json
 
 # Logs
 *.log
+
+# PLASM-specific: Internal documentation & development files
+PLASM_FOR_IA.md
+PLASM_logdev
+*.pdf
