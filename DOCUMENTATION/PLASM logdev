@@ -1,0 +1,615 @@
+24-01-2026
+
+In this file I'm going to describe and develop the whole project.
+
+First of all, this project born from the idea of merging IMDb, Goodreads,
+Letterbox, MyAnimeList and similiar apps. The main problem I had when 
+using these apps or websites is that I want to have a unic space where I can
+comment, judge and give my reviews as I want for all types of content.
+
+The name (PLASM) means "Peliculas, Libros, Anime, Series, Manga". These words
+are the meaning of films, books, anime, seriZes and manga. In the future, it 
+will probably support more types of content, such as videogames, podcasts or others.
+
+Initially, PLASM is aimed at heavy media consumers and data-oriented users who want
+full control over their reviews and data, instead of depending on external platforms.
+
+So, in conclusion the main idea is to create a main area where any type of
+user can make a review of any type of content wihtout restriction and 
+without limits in terms of content. Then, in this file I'll describe the 
+process of the project and the structure.
+
+Now, my objectives with the design to implement:
+    - I want to create a friendly user software that I want to use instead of IMDb or other apps.
+    - The main program have to register all types of content (In first place PLASM).
+    - The user will have the tools to do a review as he want, rating the main areas of the content
+      For example, if it's a movie the program have to ask to the user the camarography, the sounds... if the review is objective. The review can be also subjective/fast giving an overall calification
+    - The software will have tags, rankings and tierlist in the future. For example, the content that the user wachted in whole a year.
+
+My objectives with the programming area:
+    In first place the program needs to ask the user for a content. Now, the user select the content.
+    In this version will be PLASM. After that, the program will conect with an API where the program
+    will extract the poster, the description, the user califications... 
+    
+    Then, depending on the content the program will ask some questions about the content. If it's a 
+    book the program will ask: "Your calification about the style of the book" for example. And when the program have all the data will create a json/csv file where is alocated all the data. 
+    After that,the data will be submit to a interface where the user could interact with them. The important view have to be the total score being the score of all the califications or if the user want to have an unic review then a only review with the main score.
+    
+    Last but not least, these file will submit a SQL database where the information will save as a server for a future. But in first place, I will create a personal database for me where my reviews will be safe. 
+    
+ 
+ Step 1: Personal level.
+ 
+ In this step, I'm gonna try to make a personal environment where I can save my reviews from any type of content.
+ So, the important thing rigth now is make a programming flow that allows to do everything I want.
+ 
+ The structure of the program maked by perplexity AI. Probably this structure are gonna be the main idea for a future.
+ 
+ 28-01-2026
+
+FIRST PHASE: main program
+
+main.py:
+	     Program starts
+		 ↓
+	    Initialize configuration (API keys, paths, database)
+		 ↓
+	    Display welcome message
+		 ↓
+	    Ask user: "What do you want to do?"
+		 Options:
+		 1. Add new review
+		 2. View all reviews
+		 3. Search reviews
+		 4. Exit
+		↓
+	    User selects option 1 (Add new review)
+		↓
+	    Enter main review creation flow
+
+SECOND PHASE: Selecting and processing the content
+content_handler.py:
+	Display menu:
+	    "What type of content did you consume?"
+	    1. Film (película)
+	    2. Series (serie)
+	    3. Anime (anime)
+	    4. Manga (manga)
+	    5. Book (libro)
+	    ↓
+	User input: "1" or "film"
+	    ↓
+	Normalize & validate input
+	    - Convert to lowercase: "film"
+	    - Check against PLASM constants
+	    ↓
+	If invalid:
+	    Raise ValueError with supported types
+	    Ask again
+	    ↓
+	If valid:
+	    pass to the title
+		    
+	Display prompt:
+	    "Enter the title of the film:"
+	    ↓
+	User input: "The Poseidon Adventure"
+	    ↓
+	Validate:
+	    - Not empty
+	    - Not excessively long
+	    ↓
+	Pass to the phase 3
+
+
+additional functions on the script
+get_content_type() -> str:
+    """
+    Returns: "film" | "series" | "anime" | "manga" | "book"
+    Raises: ValueError if invalid
+    """
+
+get_title(content_type: str) -> str:
+    """
+    Args: content_type (e.g., "film")
+    Returns: title string
+    Raises: ValueError if empty/invalid
+    """
+
+
+THIRD PHASE: Api search
+api_manager.py:
+Input:
+    - content_type: "film"
+    - title: "The Poseidon Adventure"
+    ↓
+Route to appropriate API handler:
+    - "film" → TMDb search_movie()
+    - "series" → TMDb search_tv()
+    - "anime" → Jikan search_anime()
+    - "manga" → Jikan search_manga()
+    - "book" → GoogleBooks search_books()
+    ↓
+Make API call with retry logic:
+    - Max 3 retries
+    - 5-second timeout
+    - Exponential backoff on failure
+    ↓
+Parse API response:
+    Extract: id, title, year, poster_path, overview, rating
+    ↓
+Normalize to standard format JSON:
+    [
+        {
+            "id": 551,
+            "title": "The Poseidon Adventure",
+            "year": 1972,
+            "poster_path": "/6RGiA5BfhelU9zoD0b1GAG4GWWf.jpg",
+            "overview": "When their ocean liner capsizes...",
+            "vote_average": 7.095
+        },
+        {
+            "id": 345678,
+            "title": "Poseidon",
+            "year": 2006,
+            ...
+        },
+        ...
+    ]
+    (Max 5 results)
+    ↓
+Return: list of 3-5 normalized results
+
+
+additional functions:
+search_content(content_type: str, title: str) -> List[dict]:
+    """
+    Args:
+        content_type: "film" | "series" | "anime" | "manga" | "book"
+        title: search query
+    
+    Returns: List of normalized results
+    
+    Raises: 
+        APIError if API fails after retries
+        NoResultsError if no results found
+    """
+
+
+FOURTH PHASE: Select the result from the API and building the json
+content_handler.py 
+	Display search results (prettified):
+	    1. The Poseidon Adventure (1972)
+	    2. Poseidon (2006)
+	    ...
+	    "Which one did you watch? (1-5):"
+	    ↓
+	User input: "1"
+	    ↓
+	Validate:
+	    - Is it a valid number?
+	    - Is it within range (1-5)?
+	    ↓
+	If invalid:
+	    Show error, ask again
+	    ↓
+	If valid:
+	    Extract selected result
+	    Get API ID: 551 (TMDb ID)
+	    ↓
+	Return: selected_result (full object from search results)
+
+
+
+
+Additional functions:
+select_from_results(results: List[dict]) -> dict:
+    """
+    Args: list of search results
+    Returns: selected result object
+    Raises: ValueError if invalid selection
+    """
+
+
+
+api_manager.py
+	Input:
+	    - content_type: "film"
+	    - selected_result: {id: 551, title: "...", ...}
+	    ↓
+	Make detailed API call:
+	    GET /movie/551?api_key=TMDB_KEY (for films)
+	    GET /tv/12345?api_key=TMDB_KEY (for series)
+	    GET /anime/1?api_key=JIKAN_KEY (for anime)
+	    etc.
+	    ↓
+	Also fetch additional data:
+	    - Credits (for director/main actors)
+	    - Reviews (optional)
+	    - Translations (optional)
+	    ↓
+	Receive complete TMDb JSON response
+	    (like the Poseidon example you showed)
+	    ↓
+	Preprocess/normalize based on content type:
+	    Call appropriate function:
+	    - preprocess_tmdb_film()
+	    - preprocess_tmdb_series()
+	    - preprocess_jikan_anime()
+	    - preprocess_jikan_manga()
+	    - preprocess_google_books()
+	    ↓
+	Output normalized structure:
+	    {
+		"content_type": "film",
+		"source_api": "tmdb",
+		"api_id": "tmdb_551",
+		"title": "The Poseidon Adventure",
+		"original_title": "The Poseidon Adventure",
+		"year": 1972,
+		"poster_url": "https://image.tmdb.org/t/p/w500/...",
+		"description": "When their ocean liner capsizes...",
+		"api_rating": 7.095,
+		"director": "Ronald Neame",
+		"runtime": 117,
+		"genres": ["Adventure", "Drama", "Thriller"],
+		... (all fields per content type)
+	    }
+	    ↓
+	Download poster locally:
+	    - Build full URL from poster_path
+	    - Download image
+	    - Save to: data/posters/The_Poseidon_Adventure.jpg
+	    - Add path to structure: "poster_local_path"
+	    ↓
+	Return: complete normalized API data
+
+
+
+Additional function:
+fetch_complete_data(content_type: str, api_id: str) -> dict:
+    """
+    Args:
+        content_type: "film" | "series" | ...
+        api_id: API-specific ID
+    
+    Returns: Normalized complete data dict
+    
+    Raises: APIError if fetch fails
+    """
+
+
+FIFTH PHASE: Making the review
+content_handler.py
+	Receive: normalized API data
+	    ↓
+	Display nicely formatted:
+	    THE POSEIDON ADVENTURE (1972)  
+	    Public rating: 7.1/10        
+	    [Movie poster image]
+	    Director: Ronald Neame            
+	    Runtime: 117 minutes              
+	    Genres: Adventure, Drama, Thriller│
+	    Language: English                 
+	    Description:                      
+	    "When their ocean liner capsizes,
+	    a group of passengers struggle to survive and escape."           
+	    ↓
+	    "Ready to review this? (y/n)"
+	    ↓
+	User confirms: "y"
+	    ↓
+	Continue to review phase
+
+
+SIXTH PHASE: Adding the user review
+content_handler.py
+	Display menu:
+	    "How do you want to rate this content?"
+	    ├─ 1. ANALYTIC (Structured ratings)
+	    │  └─ Rate different dimensions:
+	    │     • Direction
+	    │     • Writing
+	    │     • Acting
+	    │     • Technical
+	    │     • Emotional Impact
+	    │     System calculates final score
+	    │
+	    └─ 2. SUBJECTIVE (Simple overall score)
+	       └─ Just one overall rating (1-10)
+	    ↓
+	User input: "1" (chooses ANALYTIC)
+	    ↓
+	Return: review_type = "analytic"
+	    ↓
+	Receive: content_type = "film", api_data
+	    ↓
+	Get dimension weights for this content type:
+	    ANALYTIC_WEIGHTS["film"] = {
+		"direction": 0.20,
+		"writing": 0.20,
+		"acting": 0.15,
+		"technical": 0.15,
+		"emotional_impact": 0.30
+	    }
+	    ↓
+	For each dimension, ask user:
+	    
+	    Direction (25% weight)
+		"How well was it directed? (0-10):"
+		User: 8
+		↓
+	    Writing (25% weight)
+		"Quality of screenplay/story? (0-10):"
+		User: 7
+		↓
+	    Acting (25% weight)
+		"Quality of performances? (0-10):"
+		User: 8
+		↓
+	    Technical (25% weight)
+		"Cinematography, VFX, sound? (0-10):"
+		User: 9
+	    ↓
+	Validate each rating:
+	    - Is it a number?
+	    - Is it between 0-10?
+	    If invalid, ask again
+	    ↓
+	Calculate final_score AUTOMATICALLY:
+	    final_score = (8 × 0.25) + (7 × 0.25) + (8 × 0.25) + (9 × 0.25)
+		        = 2 + 1.75 + 2 + 2.25
+		        = 8
+	    ↓
+	Return: {
+	    "direction": 8,
+	    "writing": 7,
+	    "acting": 8,
+	    "technical": 9,
+	    "final_score": 8
+	}
+
+In the other case: Subjective review or fast review
+	Display:
+	    "What's your overall rating?"
+	    "How much did you enjoy it? (0-10):"
+	    ↓
+	User input: 8
+	    ↓
+	Validate (0-10)
+	    ↓
+	Return: {
+	    "overall_score": 8
+	}
+
+Now, the review part:(This part is same for both ANALYTIC and SUBJECTIVE paths)
+Ask(input):
+    Review text (optional):
+        "Write your review (press Enter to skip):"
+        User: "Great adventure film from the 70s..."
+        ↓
+    Would rewatch?
+        "Would you watch this again? (y/n):"
+        User: "y"
+        → would_rewatch = True
+        ↓
+    Watch context:
+        " Where did you watch? (cinema/home tv/streaming app):"
+        User: "home tv"
+        ↓
+    Status:
+        "Status? (watched/stand_by/on the list/not watched):"
+        [Default: "not watched"]
+        User: [Enter to skip]
+        → status = "not watched"
+    ↓
+Return: {
+    "review_text": "Great adventure film from the 70s...",
+    "would_rewatch": True,
+    "watch_context": "home",
+    "status": "visto"
+}
+
+
+
+Additional functions:
+choose_review_type() -> str:
+    """
+    Returns: "analytic" | "subjective"
+    """
+
+get_analytic_ratings(content_type: str) -> dict:
+    """
+    Args: content_type to get appropriate dimensions
+    Returns: dict with ratings and calculated final_score
+    """
+
+get_subjective_rating() -> dict:
+    """
+    Returns: dict with overall_score
+    """
+
+get_common_review_data() -> dict:
+    """
+    Returns: dict with common fields
+    """
+
+FINAL PHASE: Finishing the review and export to the database.
+data_fusion.py:
+	Receive 4 components:
+	    1. api_data (from API preprocessing)
+	    2. review_type ("analytic" or "subjective")
+	    3. analytic_ratings (if review_type == "analytic")
+	       or subjective_rating (if review_type == "subjective")
+	    4. user_data (review text, would_rewatch, etc.)
+	    ↓
+	Merge into final structure:
+	    
+	    final_data = {
+		# API DATA
+		**api_data,              # All API fields
+		
+		# REVIEW CONFIG 
+		"review_type": "analytic",
+		
+		# RATINGS
+		"analytic_ratings": {
+		    "direction": 8,
+		    "writing": 7,
+		    "acting": 8,
+		    "technical": 9,
+		    "final_score": 8
+		},
+		"subjective_rating": {
+		    "overall_score": None  # Not used in analytic
+		},
+		
+		# USER DATA
+		"review_text": "Great adventure...",
+		"would_rewatch": True,
+		"watch_context": "home tv",
+		"status": "watched",
+		
+		# METADATA 
+		"date_added": "2026-01-28T17:36:00"
+	    }
+	    ↓
+	Validate merged structure:ç
+	
+	    - No missing required fields
+	    - All ratings are 0-10 (if present)
+	    - final_score calculated correctly
+	    ↓
+	Check for duplicates in database:
+	    SELECT * FROM reviews 
+	    WHERE api_id = "tmdb_551" AND content_type = "film"
+	    
+	    If exists:
+		Warn user: "You already reviewed this. Update existing? (y/n)"
+		↓
+		If yes: UPDATE existing review
+		If no: ABORT
+	    ↓
+	Return: validated final_data dict
+
+
+
+merge_all_data(api_data: dict, review_type: str, ratings: dict, common_data: dict) -> dict:
+    """
+    Merges all components into final review structure
+    Returns: Complete final_data dict
+    Raises: ValidationError if invalid
+    """
+
+More or less that is gonna be the main structure to follow rigth now.
+But as I said before, I want to connect this program and this information with
+a SQL database where will be stored. Then these reviews will be show in a user interface
+like obsidian or other that I'm going to research.
+
+
+29/01/2026
+
+Developing the SQL structure:
+
+FIRST PHASE: Adding to the SQL database
+storage/sql_handler.py:
+
+	Receive: final_data (complete review dict)
+	    ↓
+	Convert complex fields to JSON strings:
+	    - genres: ["Adventure", "Drama", "Thriller"] → JSON string
+	    - analytic_ratings: {...} → JSON string
+	    - production_companies: [...] → JSON string
+	    ↓
+	Insert into SQLite database:
+	    INSERT INTO reviews (
+		content_type, source_api, api_id, title, ...
+		review_type, analytic_ratings, subjective_rating, ...
+		review_text, would_rewatch, watch_context, status,
+		date_added
+	    ) VALUES (?, ?, ?, ..., NOW())
+	    ↓
+	Handle potential errors:
+	    - Unique constraint violation (duplicate api_id)
+	    - Database locked
+	    - Invalid data type
+	    ↓
+	Commit transaction
+	    ↓
+	Get inserted review ID from database
+	    ↓
+	Return: review_id (for confirmation)
+
+save_review(final_data: dict) -> int:
+    """
+    Args: final_data dict
+    Returns: review_id (database auto-increment ID)
+    Raises: SQLError, ValidationError
+    """
+
+SECOND PHASE: Managing the json
+
+storage/json_handler.py:
+	Receive: final_data (already in dict form)
+	    ↓
+	Convert to JSON string:
+	    json.dumps(final_data, indent=2, ensure_ascii=False)
+	    ↓
+	Generate filename with timestamp:
+	    filename = f"reviews_2026-01-28_17-36-00.json"
+	    
+	    Or include content:
+	    filename = f"review_The_Poseidon_Adventure_2026-01-28.json"
+	    ↓
+	Save to file:
+	    Directory: data/exports/
+	    Path: data/exports/review_The_Poseidon_Adventure_2026-01-28.json
+	    ↓
+	Write to disk
+	    ↓
+	Return: filepath
+
+export_to_json(final_data: dict, filename: str = None) -> str:
+    """
+    Args: final_data, optional filename
+    Returns: filepath where saved
+    """
+    
+    
+
+    
+Finalizing the structure and testing program
+    
+FIRST PHASE:
+    content_handler.py
+    Display success message:
+
+    REVIEW SAVED SUCCESSFULLY!  		    
+    Title: The Poseidon Adventure    		    
+    Type: Film (Analytic)             			    
+    Your Score: 8.25/10               			    
+    Status: Visto                
+    Saved to: SQLite + JSON          
+    
+    "What next?"
+    1. Add another review
+    2. View all reviews
+    3. Exit
+    ↓
+User choice determines next action
+
+
+
+Data flow:
+User Input → API Search → User Selects → API Fetch → 
+Data Preprocess → Display → Review Type → Ratings → 
+Common Data → Merge → SQL Save → JSON Export → Complete
+
+
+Architecture:
+main.py (orchestration)
+    ├─ content_handler.py (user questions)
+    ├─ api_manager.py (API integration)
+    ├─ data_fusion.py (data merging)
+    └─ storage/ (SQL & JSON saving)
+
